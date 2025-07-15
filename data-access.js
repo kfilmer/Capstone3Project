@@ -27,7 +27,7 @@ async function getCustomers() {
   }
 }
 
-// Reset customers collection to default values
+// Reset the customers collection to default records
 async function resetCustomers() {
   try {
     const sampleCustomers = [
@@ -57,7 +57,7 @@ async function addCustomer(newCustomer) {
   }
 }
 
-// Get a single customer by ID
+// Get a customer by numeric ID
 async function getCustomerById(id) {
   try {
     const customer = await collection.findOne({ id: +id });
@@ -68,7 +68,7 @@ async function getCustomerById(id) {
   }
 }
 
-// Update an existing customer
+// Update an existing customer by ID
 async function updateCustomer(updatedCustomer) {
   try {
     const filter = { id: updatedCustomer.id };
@@ -87,11 +87,28 @@ async function updateCustomer(updatedCustomer) {
   }
 }
 
-// Export all methods
+// Delete a customer by numeric ID
+async function deleteCustomerById(id) {
+  try {
+    const result = await collection.deleteOne({ id: +id });
+
+    if (result.deletedCount === 1) {
+      return ["one record deleted", null];
+    } else {
+      return [null, "no record deleted"];
+    }
+  } catch (err) {
+    console.error("Error deleting customer:", err);
+    return [null, err.message];
+  }
+}
+
+// Export all data access functions
 module.exports = {
   getCustomers,
   resetCustomers,
   addCustomer,
   getCustomerById,
-  updateCustomer
+  updateCustomer,
+  deleteCustomerById
 };

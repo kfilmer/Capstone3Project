@@ -71,10 +71,7 @@ app.put("/customers/:id", async (req, res) => {
     return;
   }
 
-  // Ensure consistency of the ID in the payload
   updatedCustomer.id = +id;
-
-  // Remove the MongoDB-generated _id if present
   delete updatedCustomer._id;
 
   const [message, errMessage] = await da.updateCustomer(updatedCustomer);
@@ -83,6 +80,18 @@ app.put("/customers/:id", async (req, res) => {
     res.status(200).send(message);
   } else {
     res.status(400).send(errMessage);
+  }
+});
+
+// DELETE /customers/:id - deletes a customer by ID
+app.delete("/customers/:id", async (req, res) => {
+  const id = req.params.id;
+  const [message, errMessage] = await da.deleteCustomerById(id);
+
+  if (message !== null) {
+    res.status(200).send(message);
+  } else {
+    res.status(404).send(errMessage || "Customer not found");
   }
 });
 
