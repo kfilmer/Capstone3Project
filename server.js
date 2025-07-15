@@ -49,6 +49,18 @@ app.post("/customers", async (req, res) => {
   }
 });
 
+// GET /customers/:id - returns a customer by numeric ID
+app.get("/customers/:id", async (req, res) => {
+  const id = req.params.id;
+  const [customer, errMessage] = await da.getCustomerById(id);
+
+  if (customer !== null) {
+    res.status(200).send(customer);
+  } else {
+    res.status(404).send(errMessage || "Customer not found");
+  }
+});
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

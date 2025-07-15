@@ -5,6 +5,7 @@ const client = new MongoClient(url);
 const dbName = "custdb";
 let collection;
 
+// Initialize MongoDB connection and set the collection
 (async function init() {
   try {
     await client.connect();
@@ -16,6 +17,7 @@ let collection;
   }
 })();
 
+// Fetch all customer documents
 async function getCustomers() {
   try {
     const customers = await collection.find().toArray();
@@ -25,6 +27,7 @@ async function getCustomers() {
   }
 }
 
+// Reset the customers collection to 3 default records
 async function resetCustomers() {
   try {
     const sampleCustomers = [
@@ -42,13 +45,33 @@ async function resetCustomers() {
     return [null, err.message];
   }
 }
+
+// Insert a new customer into the collection
 async function addCustomer(newCustomer) {
   try {
     const result = await collection.insertOne(newCustomer);
-    return ["success", result.insertedId, null]; // success: status, inserted _id, no error
+    return ["success", result.insertedId, null];
   } catch (err) {
     console.error("Error adding customer:", err);
-    return ["fail", null, err.message]; // failure: status, null id, error message
+    return ["fail", null, err.message];
   }
 }
-module.exports = { getCustomers, resetCustomers, addCustomer };
+
+// Fetch a single customer by numeric id
+async function getCustomerById(id) {
+  try {
+    const customer = await collection.findOne({ id: +id }); // force id to number
+    return [customer, null];
+  } catch (err) {
+    console.error("Error finding customer by ID:", err);
+    return [null, err.message];
+  }
+}
+
+// Export all functions
+module.exports = {
+  getCustomers,
+  resetCustomers,
+  addCustomer,
+  getCustomerById
+};
