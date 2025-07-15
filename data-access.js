@@ -42,5 +42,13 @@ async function resetCustomers() {
     return [null, err.message];
   }
 }
-
-module.exports = { getCustomers, resetCustomers };
+async function addCustomer(newCustomer) {
+  try {
+    const result = await collection.insertOne(newCustomer);
+    return ["success", result.insertedId, null]; // success: status, inserted _id, no error
+  } catch (err) {
+    console.error("Error adding customer:", err);
+    return ["fail", null, err.message]; // failure: status, null id, error message
+  }
+}
+module.exports = { getCustomers, resetCustomers, addCustomer };
