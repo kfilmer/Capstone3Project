@@ -1,3 +1,4 @@
+const da = require("./data-access");
 const express = require('express');         
 const path = require('path');               
 
@@ -6,6 +7,11 @@ const PORT = 4000;
 
 // Middleware to serve static files from "public" directory
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.get("/customers", async (req, res) => {
+  const cust = await da.getCustomers();
+  res.send(cust);
+});
 
 // Start the server and listen on port 4000
 app.listen(PORT, () => {
