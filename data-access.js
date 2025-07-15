@@ -1,32 +1,46 @@
 const { MongoClient } = require("mongodb");
 
-const url = "mongodb://localhost:27017";           // Default local MongoDB connection
+const url = "mongodb://localhost:27017";
 const client = new MongoClient(url);
-
-const dbName = "custdb";                           // Database name
+const dbName = "custdb";
 let collection;
 
-// Immediately-invoked function to connect on load
 (async function init() {
   try {
     await client.connect();
     const db = client.db(dbName);
-    collection = db.collection("customers");       // Collection name
+    collection = db.collection("customers");
     console.log("Connected to MongoDB and ready.");
   } catch (err) {
     console.error("Failed to connect to MongoDB:", err);
   }
 })();
 
-// getCustomers method to return all customer documents
 async function getCustomers() {
   try {
     const customers = await collection.find().toArray();
-    return [customers, null]; // success: return data and no error
+    return [customers, null];
   } catch (err) {
-    console.error("Error fetching customers:", err);
-    return [null, err.message]; // failure: return null and error message
+    return [null, err.message];
   }
 }
 
-module.exports = { getCustomers };
+async function resetCustomers() {
+  try {
+    const sampleCustomers = [
+      { id: 0, name: "Mary Jackson", email: "maryj@abc.com", password: "maryj" },
+      { id: 1, name: "Karen Addams", email: "karena@abc.com", password: "karena" },
+      { id: 2, name: "Scott Ramsey", email: "scottr@abc.com", password: "scottr" }
+    ];
+
+    await collection.deleteMany({});
+    await collection.insertMany(sampleCustomers);
+
+    const count = await collection.countDocuments();
+    return [`${count} customer records reset`, null];
+  } catch (err) {
+    return [null, err.message];
+  }
+}
+
+module.exports = { getCustomers, resetCustomers };
