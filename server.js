@@ -61,6 +61,31 @@ app.get("/customers/:id", async (req, res) => {
   }
 });
 
+// PUT /customers/:id - updates an existing customer
+app.put("/customers/:id", async (req, res) => {
+  const updatedCustomer = req.body;
+  const id = req.params.id;
+
+  if (!updatedCustomer || Object.keys(updatedCustomer).length === 0) {
+    res.status(400).send("missing request body");
+    return;
+  }
+
+  // Ensure consistency of the ID in the payload
+  updatedCustomer.id = +id;
+
+  // Remove the MongoDB-generated _id if present
+  delete updatedCustomer._id;
+
+  const [message, errMessage] = await da.updateCustomer(updatedCustomer);
+
+  if (message !== null) {
+    res.status(200).send(message);
+  } else {
+    res.status(400).send(errMessage);
+  }
+});
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

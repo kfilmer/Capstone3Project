@@ -5,7 +5,7 @@ const client = new MongoClient(url);
 const dbName = "custdb";
 let collection;
 
-// Initialize MongoDB connection and set the collection
+// Connect to MongoDB and set the collection
 (async function init() {
   try {
     await client.connect();
@@ -17,7 +17,7 @@ let collection;
   }
 })();
 
-// Fetch all customer documents
+// Get all customers
 async function getCustomers() {
   try {
     const customers = await collection.find().toArray();
@@ -27,7 +27,7 @@ async function getCustomers() {
   }
 }
 
-// Reset the customers collection to 3 default records
+// Reset customers collection to default values
 async function resetCustomers() {
   try {
     const sampleCustomers = [
@@ -46,7 +46,7 @@ async function resetCustomers() {
   }
 }
 
-// Insert a new customer into the collection
+// Add a new customer
 async function addCustomer(newCustomer) {
   try {
     const result = await collection.insertOne(newCustomer);
@@ -57,10 +57,10 @@ async function addCustomer(newCustomer) {
   }
 }
 
-// Fetch a single customer by numeric id
+// Get a single customer by ID
 async function getCustomerById(id) {
   try {
-    const customer = await collection.findOne({ id: +id }); // force id to number
+    const customer = await collection.findOne({ id: +id });
     return [customer, null];
   } catch (err) {
     console.error("Error finding customer by ID:", err);
@@ -68,10 +68,30 @@ async function getCustomerById(id) {
   }
 }
 
-// Export all functions
+// Update an existing customer
+async function updateCustomer(updatedCustomer) {
+  try {
+    const filter = { id: updatedCustomer.id };
+    const update = { $set: updatedCustomer };
+
+    const result = await collection.updateOne(filter, update);
+
+    if (result.matchedCount === 0) {
+      return [null, "No customer found with that ID"];
+    }
+
+    return ["one record updated", null];
+  } catch (err) {
+    console.error("Error updating customer:", err);
+    return [null, err.message];
+  }
+}
+
+// Export all methods
 module.exports = {
   getCustomers,
   resetCustomers,
   addCustomer,
-  getCustomerById
+  getCustomerById,
+  updateCustomer
 };
