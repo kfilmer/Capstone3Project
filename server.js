@@ -2,31 +2,14 @@ const da = require("./data-access");              // Import data access layer
 const express = require('express');               // Import express
 const path = require('path');                     // Import path module
 const bodyParser = require('body-parser');        // Import body-parser for JSON parsing
+const { apiKeyAuth } = require('./apiKeyMiddleware'); // Import API key middleware
 
 const app = express();                            // Create express app
 const PORT = 4000;                                // Define port
 
 // Middleware
-app.use(bodyParser.json());                       // Parse JSON request bodies
-app.use(express.static(path.join(__dirname, 'public'))); // Serve static files
-
-// API Key Middleware
-function apiKeyAuth(req, res, next) {
-  const clientKey = req.header("x-api-key");
-  const serverKey = process.env.API_KEY;
-
-  if (!clientKey) {
-    res.status(401).send("API Key is missing");
-    return;
-  }
-
-  if (clientKey !== serverKey) {
-    res.status(403).send("API Key is invalid");
-    return;
-  }
-
-  next(); // Valid key — allow access
-}
+app.use(bodyParser.json());                       // Parse incoming JSON in request bodies
+app.use(express.static(path.join(__dirname, 'public'))); // Serve static files from /public
 
 // GET /customers (protected)
 app.get("/customers", apiKeyAuth, async (req, res) => {
