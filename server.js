@@ -7,11 +7,29 @@ const app = express();                            // Create express app
 const PORT = 4000;                                // Define port
 
 // Middleware
-app.use(bodyParser.json());                       // Parse incoming JSON in request bodies
-app.use(express.static(path.join(__dirname, 'public'))); // Serve static files from /public
+app.use(bodyParser.json());                       // Parse JSON request bodies
+app.use(express.static(path.join(__dirname, 'public'))); // Serve static files
 
-// GET /customers - returns all customers
-app.get("/customers", async (req, res) => {
+// API Key Middleware
+function apiKeyAuth(req, res, next) {
+  const clientKey = req.header("x-api-key");
+  const serverKey = process.env.API_KEY;
+
+  if (!clientKey) {
+    res.status(401).send("API Key is missing");
+    return;
+  }
+
+  if (clientKey !== serverKey) {
+    res.status(403).send("API Key is invalid");
+    return;
+  }
+
+  next(); // Valid key — allow access
+}
+
+// GET /customers (protected)
+app.get("/customers", apiKeyAuth, async (req, res) => {
   const [cust, err] = await da.getCustomers();
   if (cust !== null) {
     res.status(200).send(cust);
@@ -20,7 +38,7 @@ app.get("/customers", async (req, res) => {
   }
 });
 
-// GET /reset - resets the database to 3 default customers
+// GET /reset (unprotected)
 app.get("/reset", async (req, res) => {
   const [result, err] = await da.resetCustomers();
   if (result !== null) {
@@ -30,7 +48,7 @@ app.get("/reset", async (req, res) => {
   }
 });
 
-// POST /customers - adds a new customer to the database
+// POST /customers (unprotected)
 app.post("/customers", async (req, res) => {
   const newCustomer = req.body;
 
@@ -49,7 +67,7 @@ app.post("/customers", async (req, res) => {
   }
 });
 
-// GET /customers/:id - returns a customer by numeric ID
+// GET /customers/:id (unprotected)
 app.get("/customers/:id", async (req, res) => {
   const id = req.params.id;
   const [customer, errMessage] = await da.getCustomerById(id);
@@ -61,7 +79,7 @@ app.get("/customers/:id", async (req, res) => {
   }
 });
 
-// PUT /customers/:id - updates an existing customer
+// PUT /customers/:id (unprotected)
 app.put("/customers/:id", async (req, res) => {
   const updatedCustomer = req.body;
   const id = req.params.id;
@@ -83,7 +101,7 @@ app.put("/customers/:id", async (req, res) => {
   }
 });
 
-// DELETE /customers/:id - deletes a customer by ID
+// DELETE /customers/:id (unprotected)
 app.delete("/customers/:id", async (req, res) => {
   const id = req.params.id;
   const [message, errMessage] = await da.deleteCustomerById(id);
