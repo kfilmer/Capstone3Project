@@ -9,7 +9,7 @@ const apiKeyStore = require('./apiKeyStore');
 const app = express();
 const PORT = 4000;
 
-// 🔑 Extract API key from CLI or env
+// 🔑 API Key setup
 let serverApiKey;
 const cliArg = process.argv.find(arg => arg.startsWith("--api-key="));
 if (cliArg) {
@@ -18,32 +18,25 @@ if (cliArg) {
   serverApiKey = process.env.API_KEY;
 }
 
-// ❌ Exit if no API key provided
 if (!serverApiKey) {
   console.error("apiKey has no value. Please provide a value through the API_KEY env var or --api-key cmd line parameter.");
   process.exit(1);
 }
 
-// ✅ Register default API key under email "default"
 apiKeyStore.addStaticKey(serverApiKey, "default");
 
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 🔐 GET /customers (protected by middleware)
+// ✅ Protected route
 app.get("/customers", apiKeyAuth, async (req, res) => {
   const [cust, err] = await da.getCustomers();
-  if (cust !== null) {
-    res.status(200).send(cust);
-  } else {
-    res.status(500).send(err);
-  }
+  res.status(cust ? 200 : 500).send(cust ?? err);
 });
 
-// 🆕 GET /apikey?email=someone@example.com — generate a new key
+// ✅ API key registration route
 app.get("/apikey", (req, res) => {
   const email = req.query.email;
-
   if (!email) {
     res.status(400).send("Missing email query parameter");
     return;
@@ -53,10 +46,32 @@ app.get("/apikey", (req, res) => {
   res.status(200).send({ apiKey: newKey, email });
 });
 
-// 🟡 Other unprotected routes
+// ✅ New search route (no API key required)
+app.get("/customers/find", async (req, res) => {
+  const queryKeys = Object.keys(req.query);
+
+  if (queryKeys.length === 0) {
+    res.status(400).send("query string is required");
+    return;
+  }
+
+  if (queryKeys.length > 1) {
+    res.status(400).send("Only one query string field is allowed");
+    return;
+  }
+
+  const field = queryKeys[0];
+  const value = req.query[field];
+
+  const [results, error] = await da.searchCustomers(field, value);
+
+  res.status(results ? 200 : 400).send(results ?? error);
+});
+
+// ✅ Other unprotected endpoints
 app.get("/reset", async (req, res) => {
   const [result, err] = await da.resetCustomers();
-  res.status(200).send(result ?? err);
+  res.status(result ? 200 : 500).send(result ?? err);
 });
 
 app.post("/customers", async (req, res) => {
@@ -78,16 +93,13 @@ app.post("/customers", async (req, res) => {
 app.get("/customers/:id", async (req, res) => {
   const id = req.params.id;
   const [customer, errMessage] = await da.getCustomerById(id);
-  if (customer !== null) {
-    res.status(200).send(customer);
-  } else {
-    res.status(404).send(errMessage || "Customer not found");
-  }
+  res.status(customer ? 200 : 404).send(customer ?? errMessage);
 });
 
 app.put("/customers/:id", async (req, res) => {
   const updatedCustomer = req.body;
   const id = req.params.id;
+
   if (!updatedCustomer || Object.keys(updatedCustomer).length === 0) {
     res.status(400).send("missing request body");
     return;
@@ -97,24 +109,15 @@ app.put("/customers/:id", async (req, res) => {
   delete updatedCustomer._id;
 
   const [message, errMessage] = await da.updateCustomer(updatedCustomer);
-  if (message !== null) {
-    res.status(200).send(message);
-  } else {
-    res.status(400).send(errMessage);
-  }
+  res.status(message ? 200 : 400).send(message ?? errMessage);
 });
 
 app.delete("/customers/:id", async (req, res) => {
   const id = req.params.id;
   const [message, errMessage] = await da.deleteCustomerById(id);
-  if (message !== null) {
-    res.status(200).send(message);
-  } else {
-    res.status(404).send(errMessage || "Customer not found");
-  }
+  res.status(message ? 200 : 404).send(message ?? errMessage);
 });
 
-// ✅ Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

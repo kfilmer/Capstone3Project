@@ -5,7 +5,6 @@ const client = new MongoClient(url);
 const dbName = "custdb";
 let collection;
 
-// Connect to MongoDB and set the collection
 (async function init() {
   try {
     await client.connect();
@@ -17,7 +16,6 @@ let collection;
   }
 })();
 
-// Get all customers
 async function getCustomers() {
   try {
     const customers = await collection.find().toArray();
@@ -27,7 +25,6 @@ async function getCustomers() {
   }
 }
 
-// Reset the customers collection to default records
 async function resetCustomers() {
   try {
     const sampleCustomers = [
@@ -46,7 +43,6 @@ async function resetCustomers() {
   }
 }
 
-// Add a new customer
 async function addCustomer(newCustomer) {
   try {
     const result = await collection.insertOne(newCustomer);
@@ -57,18 +53,15 @@ async function addCustomer(newCustomer) {
   }
 }
 
-// Get a customer by numeric ID
 async function getCustomerById(id) {
   try {
     const customer = await collection.findOne({ id: +id });
     return [customer, null];
   } catch (err) {
-    console.error("Error finding customer by ID:", err);
     return [null, err.message];
   }
 }
 
-// Update an existing customer by ID
 async function updateCustomer(updatedCustomer) {
   try {
     const filter = { id: updatedCustomer.id };
@@ -82,12 +75,10 @@ async function updateCustomer(updatedCustomer) {
 
     return ["one record updated", null];
   } catch (err) {
-    console.error("Error updating customer:", err);
     return [null, err.message];
   }
 }
 
-// Delete a customer by numeric ID
 async function deleteCustomerById(id) {
   try {
     const result = await collection.deleteOne({ id: +id });
@@ -98,17 +89,39 @@ async function deleteCustomerById(id) {
       return [null, "no record deleted"];
     }
   } catch (err) {
-    console.error("Error deleting customer:", err);
     return [null, err.message];
   }
 }
 
-// Export all data access functions
+// ✅ New function for search endpoint
+async function searchCustomers(field, value) {
+  try {
+    const allowedFields = ["id", "email", "password"];
+    if (!allowedFields.includes(field)) {
+      return [null, "name must be one of the following (id, email, password)"];
+    }
+
+    const filter = {};
+    filter[field] = field === "id" ? +value : value;
+
+    const results = await collection.find(filter).toArray();
+
+    if (results.length === 0) {
+      return [null, "no matching customer documents found"];
+    }
+
+    return [results, null];
+  } catch (err) {
+    return [null, err.message];
+  }
+}
+
 module.exports = {
   getCustomers,
   resetCustomers,
   addCustomer,
   getCustomerById,
   updateCustomer,
-  deleteCustomerById
+  deleteCustomerById,
+  searchCustomers
 };
