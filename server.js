@@ -1,15 +1,16 @@
-const da = require("./data-access");                  // Import data access layer
-const express = require('express');                   // Import express
-const path = require('path');                         // Import path module
-const bodyParser = require('body-parser');            // For JSON parsing
-const { createApiKeyAuthMiddleware } = require('./apiKeyMiddleware'); // Middleware
+const da = require("./data-access");
+const express = require('express');
+const path = require('path');
+const bodyParser = require('body-parser');
+
+const { apiKeyAuth } = require('./apiKeyMiddleware');
+const apiKeyStore = require('./apiKeyStore');
 
 const app = express();
 const PORT = 4000;
 
-// 🟦 Step 1: Extract API Key from CLI or env
+// 🔑 Extract API key from CLI or env
 let serverApiKey;
-
 const cliArg = process.argv.find(arg => arg.startsWith("--api-key="));
 if (cliArg) {
   serverApiKey = cliArg.split("=")[1];
@@ -17,20 +18,19 @@ if (cliArg) {
   serverApiKey = process.env.API_KEY;
 }
 
-// 🟥 Step 2: Exit if no API key provided
+// ❌ Exit if no API key provided
 if (!serverApiKey) {
   console.error("apiKey has no value. Please provide a value through the API_KEY env var or --api-key cmd line parameter.");
   process.exit(1);
 }
 
-// 🟩 Step 3: Initialize middleware with actual key
-const apiKeyAuth = createApiKeyAuthMiddleware(serverApiKey);
+// ✅ Register default API key under email "default"
+apiKeyStore.addStaticKey(serverApiKey, "default");
 
-// Middleware
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Protected route
+// 🔐 GET /customers (protected by middleware)
 app.get("/customers", apiKeyAuth, async (req, res) => {
   const [cust, err] = await da.getCustomers();
   if (cust !== null) {
@@ -40,14 +40,23 @@ app.get("/customers", apiKeyAuth, async (req, res) => {
   }
 });
 
-// Unprotected routes
+// 🆕 GET /apikey?email=someone@example.com — generate a new key
+app.get("/apikey", (req, res) => {
+  const email = req.query.email;
+
+  if (!email) {
+    res.status(400).send("Missing email query parameter");
+    return;
+  }
+
+  const newKey = apiKeyStore.addApiKey(email);
+  res.status(200).send({ apiKey: newKey, email });
+});
+
+// 🟡 Other unprotected routes
 app.get("/reset", async (req, res) => {
   const [result, err] = await da.resetCustomers();
-  if (result !== null) {
-    res.status(200).send(result);
-  } else {
-    res.status(500).send(err);
-  }
+  res.status(200).send(result ?? err);
 });
 
 app.post("/customers", async (req, res) => {
@@ -105,7 +114,7 @@ app.delete("/customers/:id", async (req, res) => {
   }
 });
 
-// Start the server
+// ✅ Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

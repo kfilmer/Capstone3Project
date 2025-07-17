@@ -1,21 +1,20 @@
 // apiKeyMiddleware.js
+const { isValidKey } = require('./apiKeyStore');
 
-function createApiKeyAuthMiddleware(serverKey) {
-  return function apiKeyAuth(req, res, next) {
-    const clientKey = req.header("x-api-key");
+function apiKeyAuth(req, res, next) {
+  const clientKey = req.header("x-api-key");
 
-    if (!clientKey) {
-      res.status(401).send("API Key is missing");
-      return;
-    }
+  if (!clientKey) {
+    res.status(401).send("API Key is missing");
+    return;
+  }
 
-    if (clientKey !== serverKey) {
-      res.status(403).send("API Key is invalid");
-      return;
-    }
+  if (!isValidKey(clientKey)) {
+    res.status(403).send("API Key is invalid");
+    return;
+  }
 
-    next();
-  };
+  next();
 }
 
-module.exports = { createApiKeyAuthMiddleware };
+module.exports = { apiKeyAuth };
