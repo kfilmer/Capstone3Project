@@ -45,6 +45,18 @@ async function resetCustomers() {
 
 async function addCustomer(newCustomer) {
   try {
+    // Check for existing customer with same id or email
+    const existing = await collection.findOne({
+      $or: [
+        { id: newCustomer.id },
+        { email: newCustomer.email }
+      ]
+    });
+
+    if (existing) {
+      return ["fail", null, "Customer with this id or email already exists"];
+    }
+
     const result = await collection.insertOne(newCustomer);
     return ["success", result.insertedId, null];
   } catch (err) {
@@ -93,7 +105,6 @@ async function deleteCustomerById(id) {
   }
 }
 
-// ✅ New function for search endpoint
 async function searchCustomers(field, value) {
   try {
     const allowedFields = ["id", "email", "password"];
